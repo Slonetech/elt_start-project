@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Use Python 3.12 and install PostgreSQL 17 client tools
 FROM python:3.12-slim
 
@@ -20,3 +21,13 @@ RUN pip install --upgrade pip && pip install -r requirements.txt
 COPY elt_script.py .
 
 CMD ["python", "elt_script.py"]
+=======
+FROM python:3.12-slim
+
+RUN apt-get update && apt-get install -y postgresql-client
+
+COPY elt_script.py .
+
+CMD [ "python", "./elt_script.py" ]
+
+>>>>>>> 9fc2d7dfc722989374bfb8a4d64cca8bbaf112b7

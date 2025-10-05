@@ -1,6 +1,14 @@
+<<<<<<< HEAD
 services:
   source_postgres:
     image: postgres:17
+=======
+version: '3.8'
+
+services:
+  source_postgres:
+    image: postgres:latest
+>>>>>>> 9fc2d7dfc722989374bfb8a4d64cca8bbaf112b7
     ports:
       - "5437:5432"
     networks:
@@ -11,6 +19,7 @@ services:
       POSTGRES_PASSWORD: secret
     volumes:
       - ./source_db_init/init.sql:/docker-entrypoint-initdb.d/init.sql
+<<<<<<< HEAD
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres -d source_db"]
       interval: 5s
@@ -20,6 +29,11 @@ services:
 
   destination_postgres:
     image: postgres:17
+=======
+
+  destination_postgres:
+    image: postgres:latest
+>>>>>>> 9fc2d7dfc722989374bfb8a4d64cca8bbaf112b7
     ports:
       - "5438:5432"
     networks:
@@ -28,6 +42,7 @@ services:
       POSTGRES_DB: destination_db
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: secret
+<<<<<<< HEAD
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres -d destination_db"]
       interval: 5s
@@ -38,15 +53,26 @@ services:
   elt_script:
     build:
       context: ./elt
+=======
+    
+  elt_script:
+    build:
+      context: ./elt_script
+>>>>>>> 9fc2d7dfc722989374bfb8a4d64cca8bbaf112b7
       dockerfile: Dockerfile
     command: ["python", "elt_script.py"]
     networks:
       - elt_network
     depends_on:
+<<<<<<< HEAD
       source_postgres:
         condition: service_healthy
       destination_postgres:
         condition: service_healthy
+=======
+      - source_postgres
+      - destination_postgres
+>>>>>>> 9fc2d7dfc722989374bfb8a4d64cca8bbaf112b7
 
 networks:
   elt_network:
