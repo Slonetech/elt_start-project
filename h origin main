@@ -1,0 +1,30 @@
+[33mcommit eeed9466eecfa77257adc248f564a79c583ced91[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m)[m
+Author: Slonetech <kengeregordon@gmail.com>
+Date:   Mon Oct 6 12:39:14 2025 +0300
+
+    feat: complete Phase 0, Task 0.1 - Secrets Management
+    
+    Changes:
+    - Externalized all credentials to .env file
+    - Created .env.example template for repository
+    - Added .gitignore to exclude .env from version control
+    - Updated docker-compose.yaml to use environment variables
+    - Removed obsolete 'version: 3.8' attribute from compose file
+    - Changed ports to 5437/5438 to avoid conflicts
+    - Modified elt_script.py to read credentials from environment
+    - Fixed Dockerfile merge conflict artifacts
+    - Improved health checks: 60s start_period, 5 retries, 10s interval
+    
+    Environment Variables:
+    - SOURCE_POSTGRES_HOST, _DB, _USER, _PASSWORD
+    - DESTINATION_POSTGRES_HOST, _DB, _USER, _PASSWORD
+    
+    Pipeline Status: ✅ Successfully transfers 113 rows across 5 tables
+    - 14 users, 20 films, 20 actors, 39 categories, 20 film_actors
+
+ .env.example        |   8 [32m++[m
+ .gitignore          |   1 [32m+[m
+ docker-compose.yaml |  85 [32m++++++++[m[31m-----------[m
+ elt/Dockerfile      |  18 [32m+[m[31m---[m
+ elt/elt_script.py   | 230 [32m++++++++++++++++++[m[31m----------------------------------[m
+ 5 files changed, 122 insertions(+), 220 deletions(-)
