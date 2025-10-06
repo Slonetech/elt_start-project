@@ -1,8 +1,29 @@
+"""
+ELT Pipeline: PostgreSQL Source -> Destination
+Extracts data using pg_dump and loads into destination database
+"""
+
 import subprocess
 import time
 import os
+from logger_config import setup_logger
+
+# Initialize structured logger
+logger = setup_logger()
+
 
 def wait_for_postgres(host, max_retries=5, delay=5):
+    """
+    Wait for PostgreSQL to become available
+    
+    Args:
+        host: Database host identifier
+        max_retries: Maximum connection attempts
+        delay: Seconds between retries
+    
+    Returns:
+        True if connection successful, False otherwise
+    """
     retries = 0
     while retries < max_retries:
         try:
@@ -12,21 +33,48 @@ def wait_for_postgres(host, max_retries=5, delay=5):
                 capture_output=True,
                 text=True
             )
+            
             if result.returncode == 0:
-                print(f'[SUCCESS] Database {host} is ready')
+                logger.info(
+                    'Database connection successful',
+                    extra={
+                        'host': host,
+                        'attempt': retries + 1,
+                        'max_retries': max_retries
+                    }
+                )
                 return True
+                
         except subprocess.CalledProcessError as e:
             retries += 1
-            print(f'[WAITING] Database {host} not ready. Attempt {retries}/{max_retries}')
+            logger.warning(
+                'Database not ready, retrying',
+                extra={
+                    'host': host,
+                    'attempt': retries,
+                    'max_retries': max_retries,
+                    'error': str(e)
+                }
+            )
             time.sleep(delay)
     
-    print(f'[ERROR] Could not connect to {host} after {max_retries} attempts')
+    logger.error(
+        'Failed to connect to database',
+        extra={
+            'host': host,
+            'total_attempts': max_retries
+        }
+    )
     return False
 
+
 def extract_and_load():
-    print('[STEP] Starting ELT Pipeline...')
+    """
+    Main ELT function: Extract from source and load into destination
+    """
+    logger.info('Starting ELT pipeline')
     
-    # Source database config
+    # Read configuration from environment
     source_config = {
         'host': os.environ.get('SOURCE_POSTGRES_HOST', 'source_postgres'),
         'database': os.environ.get('SOURCE_POSTGRES_DB', 'source_db'),
@@ -34,7 +82,6 @@ def extract_and_load():
         'password': os.environ.get('SOURCE_POSTGRES_PASSWORD', 'secret')
     }
     
-    # Destination database config
     destination_config = {
         'host': os.environ.get('DESTINATION_POSTGRES_HOST', 'destination_postgres'),
         'database': os.environ.get('DESTINATION_POSTGRES_DB', 'destination_db'),
@@ -42,18 +89,22 @@ def extract_and_load():
         'password': os.environ.get('DESTINATION_POSTGRES_PASSWORD', 'secret')
     }
     
-    print(f'[CONFIG] Source: {source_config["host"]}/{source_config["database"]}')
-    print(f'[CONFIG] Destination: {destination_config["host"]}/{destination_config["database"]}')
+    logger.info('Configuration loaded from environment', extra={
+        'source_db': source_config['database'],
+        'destination_db': destination_config['database']
+    })
     
     # Wait for databases
-    print('[STEP] Checking database readiness...')
+    logger.info('Waiting for databases to be ready')
+    
     if not wait_for_postgres(source_config['host']):
         return
+    
     if not wait_for_postgres(destination_config['host']):
         return
     
     # Dump source database
-    print('[STEP] Extracting data from source database...')
+    logger.info('Starting data extraction from source database')
     dump_command = [
         'pg_dump',
         '-h', source_config['host'],
@@ -67,14 +118,17 @@ def extract_and_load():
     subprocess_env['PGPASSWORD'] = source_config['password']
     
     try:
-        subprocess.run(dump_command, env=subprocess_env, check=True)
-        print('[SUCCESS] Data extraction completed')
+        subprocess.run(dump_command, env=subprocess_env, check=True, capture_output=True)
+        logger.info('Data extraction completed successfully')
     except subprocess.CalledProcessError as e:
-        print(f'[ERROR] Data extraction failed: {e}')
+        logger.error(
+            'Data extraction failed',
+            extra={'error': str(e), 'returncode': e.returncode}
+        )
         return
     
-    # Load into destination
-    print('[STEP] Loading data into destination database...')
+    # Load into destination database
+    logger.info('Starting data load into destination database')
     load_command = [
         'psql',
         '-h', destination_config['host'],
@@ -86,11 +140,21 @@ def extract_and_load():
     subprocess_env['PGPASSWORD'] = destination_config['password']
     
     try:
-        subprocess.run(load_command, env=subprocess_env, check=True)
-        print('[SUCCESS] ELT Pipeline completed successfully!')
+        subprocess.run(load_command, env=subprocess_env, check=True, capture_output=True)
+        logger.info(
+            'ELT pipeline completed successfully',
+            extra={
+                'source': f"{source_config['host']}/{source_config['database']}",
+                'destination': f"{destination_config['host']}/{destination_config['database']}"
+            }
+        )
     except subprocess.CalledProcessError as e:
-        print(f'[ERROR] Data load failed: {e}')
+        logger.error(
+            'Data load failed',
+            extra={'error': str(e), 'returncode': e.returncode}
+        )
         return
+
 
 if __name__ == '__main__':
     extract_and_load()
